@@ -4,6 +4,9 @@
 At the moment the input format is a Python list,
 this probably will change to a more friendly format.
 
+the new format is better but not bulletproof.
+it's possible to feed it data that will cause an exception.
+
 """
 #doing some parsing
 import string
@@ -23,11 +26,12 @@ pageSize=(8.5*inch,11*inch)
 
 startX, startY = inch, pageSize[1] - inch
 
-lineSpacing = inch/12   #inter-line spacing
+lineSpacing = inch/10   #inter-line spacing
 nLines = 6              # most naturally
+fatLineWidth = 1.5
 lineWidth = inch/144    # fine lines
 
-tabSpacing = inch/2      #inter-tab spacing
+tabSpacing = inch/3*2      #inter-tab spacing
 tabWidth = (pageSize[0] - startX*2)
 nTabs = (pageSize[1] - inch*2) / ((nLines-1)*lineSpacing+tabSpacing)
 cellsPerTab = 24
@@ -38,7 +42,8 @@ fontSize=9
 
 # we'll need input and output files
 
-def run(data, outfile):   
+def run(infile, outfile):   
+    data = compile(infile)
     c = Canvas(outfile,pagesize=pageSize,pageCompression=0)
     lines(c)
     left = notes(c, data)
@@ -56,54 +61,24 @@ def lines(c):
             y2 = y1
         y1 = y1 - tabSpacing
         y2 = y1
-    
-def notesOld(c, data):
-    c.setFont(fontName, fontSize)
-    n = len(data)
-    max = nTabs * cellsPerTab
-    left = []
-    if n > max:
-        n = max
-        left = data[:n]
-    
-    x,y = startX, startY
-    x += cellWidth/2
-    
-    for d in data:
-        if type(d) is TupleType:
-            if not d:
-                pass    # empty spot
-            elif type(d[0]) is TupleType:
-                for n in d: #chord
-                    if type(n) is TupleType:
-                        lastString = fret(c, x,y, n)
-                    else:
-                        note(c, x,y, n)
-            else:
-                lastString = fret(c, x,y, d)
-                
-        elif type(d) is IntType:
-            fret(c, x,y, (lastString,d))
-        
-        x,y = nexy(x, y)
-        
-def notes(c, data):
-    c.setFont(fontName, fontSize)
+
+def notes(canvas, data):
+    canvas.setFont(fontName, fontSize)
     maxCell = nTabs * cellsPerTab
     
     x,y = startX, startY
     x += cellWidth/2
-    
+    lx,ly = x,y    
     cell = 0
     item = 0
     for d in data:
         item = item + 1
-        if not d:
-            continue
         if type(d) is StringType:
+            if not d:
+                continue
             c = d[0]
             d = d[1:]
-            if c == '^':
+            if c == '^':    # break directive
                 if len(d)==0:
                     pass    # skip cell
                 elif len(d)==1:
@@ -111,77 +86,77 @@ def notes(c, data):
                 else:
                     break   # end of page
             else:
-                if c == '+':
-                    note(c, x,y, d, above=1)
+                if c == '{':  # repeat mark
+                    repeat(canvas, x,y)
+                elif c == '}':  # end repeat mark
+                    endrepeat(canvas, lx,ly)
+                elif c == '+':
+                    note(canvas, x,y, d, above=1)
                 elif c == '-':
-                    note(c, x,y, d, above=0)
+                    note(canvas, x,y, d, above=0)
                 continue    # Don't skip cell
                 
         elif type(d) is TupleType:
             if type(d[0]) is TupleType:
                 for n in d: #chord
                     if type(n) is TupleType:
-                        lastString = fret(c, x,y, n)
-                    else:
-                        note(c, x,y, n)
+                        lastString = fret(canvas, x,y, n)
+                    else:   # implied 'next string'
+                        lastString = fret(canvas, x,y, (lastString-1,n))
             else:
-                lastString = fret(c, x,y, d)
+                lastString = fret(canvas, x,y, d)
                 
         elif type(d) is IntType:
-            fret(c, x,y, (lastString,d))
+            fret(canvas, x,y, (lastString,d))
         
+        # next cell
+        lx,ly = x,y    
         x,y = nexy(x, y)
         cell = cell + 1
         if cell > maxCell:
             break
+    
+    # next page
     return data[item:]
         
 def fret(c, x,y, t):
     s,f = t[0],t[1]
-    y = y - (s-1)*lineSpacing - lineSpacing/2
+    y = y - (s-1)*lineSpacing - lineSpacing/3
     f = str(f)
     c.drawCentredString(x, y, f)
     return s
     
 def note(c, x,y, s, above=0):
+    s = string.replace(s, '\t', ' ')    # quoted
     if above:
-        y = y + lineSpacing
+        y = y + lineSpacing * 2
+        c.drawCentredString(x, y, s)
     else:
-        y = y - 8*lineSpacing
-    c.drawString(x, y, s)
+        y = y - 8*lineSpacing    
+        c.drawString(x, y, s)
 
+def repeat(c, x,y):
+    x -= cellWidth/2
+    c.setLineWidth(fatLineWidth)
+    c.line(x,y, x,y-5*lineSpacing)
+    c.setLineWidth(lineWidth)
+    x = x + fatLineWidth*2
+    c.line(x,y, x,y-5*lineSpacing)    
+
+def endrepeat(c, x,y):    
+    x += cellWidth/2
+    c.setLineWidth(fatLineWidth)
+    c.line(x,y, x,y-5*lineSpacing)
+    c.setLineWidth(lineWidth)
+    x = x - fatLineWidth*2
+    c.line(x,y, x,y-5*lineSpacing)    
+    
 def nexy(x,y):
     x = x+cellWidth
     if x > startX + tabWidth:
         x = startX + cellWidth/2
         y = y - (6*lineSpacing) - tabSpacing
     return x,y
-
-# some test data
-REST=()
-S1=[(1,12,'(4)'),11,
-    12,11,12,
-    7,10,8,
-    ((6,5),(1,5), 'Am'),(5,7),(4,7),
-    (3,5),(2,5),(1,5),
-    ((6,0),(1,7),'E'),(5,7),(4,6),
-    (1,0)]
-
-S2=[(1,4),(1,7),
-    ((6,5),(1,8),'Am'), (5,7),(4,7),
-    (1,0)]
-
-S3=S1+[(1,8),7,
-       ((6,5),(1,5),'Am'),(5,7),(4,7),
-       (1,7),8,9,
-       ((6,8),(1,12),'C'),(5,10),(4,10),
-       (3,12),(1,13),12,
-       ((6,7),(1,10),'G'),(5,10),(4,9),
-       (3,10),(1,12),10,
-       ((6,5),(1,8), 'Am'),(5,7),(4,7),
-       (1,0),10,8,
-       ((6,0),(1,7))
-       ]
 
 def Parse(data):
     """ converting a different format 
@@ -190,8 +165,10 @@ def Parse(data):
         meta: key
         macro= value
         macro=[multiline]
-        
+    
+        i'd like to handle quotes    
     """
+    data = string.replace(data, '\t', ' ') #no tabs
     lines = string.split(data, '\n')
     song = []
     meta = {}
@@ -200,8 +177,18 @@ def Parse(data):
     macro = []
     
     for line in lines:
-        if not line or line[0]=='#':
+        comment = string.find(line, '#')
+        if comment >= 0:
+            line = line[:comment]
+        if not line:
             continue
+        q = string.find(line,'"')
+        if q >= 0:  # handling quotes
+            qe = string.find(line, '"', q+1)
+            if qe > 0:
+                #hack to replace spaces with something else
+                s = string.replace(line[q+1:qe],' ','\t')
+                line = line[:q] + s + line[qe+1:]
         if string.find(line,'=') > 0:
             name, value = string.split(line, '=', 1)
             macroName = string.strip(name)
@@ -230,22 +217,14 @@ def Parse(data):
         else:
             song.append(line)
     return meta, macros, song
+
+def compile(infile):
+    data = open(infile).read()
+    meta, macros, song = Parse(data)
+    cookmacros(macros)
+    song = Cooker(macros,song)()
+    return items2data(song)
     
-FurElise = [REST]+S1+S2+S3
-            
-run(FurElise,"t.pdf")
-
-meta,macros,song= Parse(open("furelise.tab").read())
-print
-for m in meta.keys():
-    print m,':',meta[m]
-print
-
-for m in macros.keys():
-    print m, '=', macros[m]
-print
-print song
-
 """
 How to cook the macros
 each macro is an arbitrary list of strings,
@@ -254,7 +233,6 @@ join them together and then split on white space
 pass through the items and replace any matching a macro
 with the contents of the macro
 if no replacements occurred, done cooking that macro.
-
 """
 
 def cookmacros(macros):       
@@ -262,7 +240,7 @@ def cookmacros(macros):
     for k in keys:
         value = macros[k]
         value = string.join(value, ' ')
-        macros[m] = string.strip(value)
+        value = string.strip(value)
         macros[k] = string.split(value, ' ')
 
 class Cooker:
@@ -293,18 +271,30 @@ class Cooker:
             return g
         return item
 
-cookmacros(macros)
-song = Cooker(macros,song)()
+def pair(s):
+    s,f = string.split(s,'.',1)
+    return (int(s),int(f))
+    
+def onenote(s):
+    if string.find(s, '.') > 0:
+        return pair(s)
+    return int(s)
 
-for k in macros.keys():
-    value = macros[k]
-    macros[k] = []
-    macros[k] = Cooker(macros, value)()
-
-print
-for m in macros.keys():
-    macros[m] = string.join(macros[m],' ')
-    print m, '=', macros[m]
-print
-print song
+def items2data(song):
+    data = []
+    inquote = []
+    for s in song:
+        c = s[0]
+        if c in '+-^{}': 
+            data.append(s)
+        else:
+            if string.find(s, '&') > 0:
+                notes = string.split(s, '&')
+                s = tuple(map(onenote,notes))
+            else:
+                s = onenote(s)
+            data.append(s)
+    return data
+    
+run('furelise.tab','t.pdf')
 

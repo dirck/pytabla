@@ -1,47 +1,88 @@
 #
 #       furelise.tab    Fur Elise Guitar Tablature Source
 #
+# Yes, XML might be useful, too ugly for source, though
+#
+
 Title: Fur Elise
 Font:  Times-Roman,9
 Cells: 24
 Header:
 Footer:
 
-# overall it looks like this
+# the main structure
 
-#A aa A ab
-#B ba B bb etc.
+"-phrase A has a sub phrase, twice, with a minor ending change"
 
-# can i use symbols before defining? that would be cool
+{ Skip A }
 
-A=SkipCell a1
-SkipCell S1 S1a S2 S2a S3
+"-phrase B has a contrast phrase, followed by A again"
 
-# that's the end of the tune, let's build the pieces
+{ B A }
 
-SkipCell=^
-LineBreak=^^
-PageBreak=^^^
+"-phrase C at m24.5, Complete Break, not guitar friendly"
 
-S1=[
-+4 1.12 11 12 11 12 7 10 8 
--Am 6.5&1.5 5.7 4.7 3.5 2.5 1.5
--E  6.0&1.7 5.7 4.6
-1.0
-]
+C
 
-S1a=[ 1.0 4 7 -Am 6.5&1.8 5.7 4.7 ]
+#END
 
-S2=[ 1.0 S1 ]
+# the pieces
 
-S2a=[ 1.0 8 7 -Am 6.5&1.5 5.7 4.7 ]
+# leading 'rest'
 
-S3=[ 1.7 8 9 
-     -C 6.8&1.12 5.10 4.10
+ADoc=
+
+A  = a1 a2
+a1 = primary 1.0 4 7 Am10
+a2 = 1.0 primary 1.0 8 7 Am
+
+BDoc=
+
+B = BDoc b1
+
+primary=[+(4) 1.12 11   12 11 12   7 10 8 
+        Am+   3.5 2.5 1.5 
+        E+ ]
+
+Am = +Am 6.5&1.5
+Am10 = +Am10 6.5&1.8
+
+Am+ = Am 5.7 4.7
+Am10+ = Am10 5.7 4.7
+
+EM = +E 6.0&1.7
+E+ = EM 5.7 4.6
+
+a1 = primary 1.0 4 7 Am10+
+a2 = 1.0 primary 1.0 8 7 Am+
+
+CM= +C 6.8&1.12 
+C+ = CM 5.10 4.10
+
+GM= +G 6.7&1.10 
+G+ = GM 5.10 4.9
+
+b1=[ 1.7 8 9 
+     C+
      3.12 1.13 12
-     -G 6.7&1.10 5.10 4.9
+     G+
      3.10 1.12 10
-     -Am 6.5&1.8 5.7 4.7
+     Am10+
+     Wrap
      1.0 10 8
-     -E 6.0&1.7 ]
+     -m13 EM 5.7 2.5 1.0 12 0 12 12 +<H> 5
+     11 12 11 12 11 12 
+     Wrap
+     11
+     ]
+
+C=c1 c2 c3
+c1=4.8&5&5&8
+c2=4.7&5&6&8
+c3=5.10&8&9&8&8
+# predefine these?
+
+Skip=^
+Wrap=^^
+Page=^^^
 
