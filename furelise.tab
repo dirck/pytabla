@@ -1,0 +1,47 @@
+#
+#       furelise.tab    Fur Elise Guitar Tablature Source
+#
+Title: Fur Elise
+Font:  Times-Roman,9
+Cells: 24
+Header:
+Footer:
+
+# overall it looks like this
+
+#A aa A ab
+#B ba B bb etc.
+
+# can i use symbols before defining? that would be cool
+
+A=SkipCell a1
+SkipCell S1 S1a S2 S2a S3
+
+# that's the end of the tune, let's build the pieces
+
+SkipCell=^
+LineBreak=^^
+PageBreak=^^^
+
+S1=[
++4 1.12 11 12 11 12 7 10 8 
+-Am 6.5&1.5 5.7 4.7 3.5 2.5 1.5
+-E  6.0&1.7 5.7 4.6
+1.0
+]
+
+S1a=[ 1.0 4 7 -Am 6.5&1.8 5.7 4.7 ]
+
+S2=[ 1.0 S1 ]
+
+S2a=[ 1.0 8 7 -Am 6.5&1.5 5.7 4.7 ]
+
+S3=[ 1.7 8 9 
+     -C 6.8&1.12 5.10 4.10
+     3.12 1.13 12
+     -G 6.7&1.10 5.10 4.9
+     3.10 1.12 10
+     -Am 6.5&1.8 5.7 4.7
+     1.0 10 8
+     -E 6.0&1.7 ]
+
