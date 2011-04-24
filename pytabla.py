@@ -1,15 +1,19 @@
 """
     pytabla.py - python pdf guitar tablature
 
+usage:
+    pytabla input.tab output.pdf
+"""
+"""
 At the moment the input format is a Python list,
 this probably will change to a more friendly format.
 
 the new format is better but not bulletproof.
 it's possible to feed it data that will cause an exception.
-
 """
 #doing some parsing
 import string
+import sys
 
 # Using reportlabs
 
@@ -33,7 +37,7 @@ lineWidth = inch/144    # fine lines
 
 tabSpacing = inch/3*2      #inter-tab spacing
 tabWidth = (pageSize[0] - startX*2)
-nTabs = (pageSize[1] - inch*2) / ((nLines-1)*lineSpacing+tabSpacing)
+nTabs = int((pageSize[1] - inch*2) / ((nLines-1)*lineSpacing+tabSpacing))
 cellsPerTab = 24
 cellWidth = tabWidth / cellsPerTab
 
@@ -42,7 +46,7 @@ fontSize=9
 
 # we'll need input and output files
 
-def run(infile, outfile):   
+def run(infile, outfile):
     data = compile(infile)
     c = Canvas(outfile,pagesize=pageSize,pageCompression=0)
     lines(c)
@@ -65,10 +69,10 @@ def lines(c):
 def notes(canvas, data):
     canvas.setFont(fontName, fontSize)
     maxCell = nTabs * cellsPerTab
-    
+
     x,y = startX, startY
     x += cellWidth/2
-    lx,ly = x,y    
+    lx,ly = x,y
     cell = 0
     item = 0
     for d in data:
@@ -95,7 +99,7 @@ def notes(canvas, data):
                 elif c == '-':
                     note(canvas, x,y, d, above=0)
                 continue    # Don't skip cell
-                
+
         elif type(d) is TupleType:
             if type(d[0]) is TupleType:
                 for n in d: #chord
@@ -105,34 +109,34 @@ def notes(canvas, data):
                         lastString = fret(canvas, x,y, (lastString-1,n))
             else:
                 lastString = fret(canvas, x,y, d)
-                
+
         elif type(d) is IntType:
             fret(canvas, x,y, (lastString,d))
-        
+
         # next cell
-        lx,ly = x,y    
+        lx,ly = x,y
         x,y = nexy(x, y)
         cell = cell + 1
         if cell > maxCell:
             break
-    
+
     # next page
     return data[item:]
-        
+
 def fret(c, x,y, t):
     s,f = t[0],t[1]
     y = y - (s-1)*lineSpacing - lineSpacing/3
     f = str(f)
     c.drawCentredString(x, y, f)
     return s
-    
+
 def note(c, x,y, s, above=0):
     s = string.replace(s, '\t', ' ')    # quoted
     if above:
-        y = y + lineSpacing * 2
+        y = y + lineSpacing *1.5
         c.drawCentredString(x, y, s)
     else:
-        y = y - 8*lineSpacing    
+        y = y - 7.5*lineSpacing
         c.drawString(x, y, s)
 
 def repeat(c, x,y):
@@ -141,16 +145,16 @@ def repeat(c, x,y):
     c.line(x,y, x,y-5*lineSpacing)
     c.setLineWidth(lineWidth)
     x = x + fatLineWidth*2
-    c.line(x,y, x,y-5*lineSpacing)    
+    c.line(x,y, x,y-5*lineSpacing)
 
-def endrepeat(c, x,y):    
+def endrepeat(c, x,y):
     x += cellWidth/2
     c.setLineWidth(fatLineWidth)
     c.line(x,y, x,y-5*lineSpacing)
     c.setLineWidth(lineWidth)
     x = x - fatLineWidth*2
-    c.line(x,y, x,y-5*lineSpacing)    
-    
+    c.line(x,y, x,y-5*lineSpacing)
+
 def nexy(x,y):
     x = x+cellWidth
     if x > startX + tabWidth:
@@ -159,14 +163,14 @@ def nexy(x,y):
     return x,y
 
 def Parse(data):
-    """ converting a different format 
-    
+    """ converting a different format
+
         #comment
         meta: key
         macro= value
         macro=[multiline]
-    
-        i'd like to handle quotes    
+
+        i'd like to handle quotes
     """
     data = string.replace(data, '\t', ' ') #no tabs
     lines = string.split(data, '\n')
@@ -175,7 +179,7 @@ def Parse(data):
     macros = {}
     macroName = ''
     macro = []
-    
+
     for line in lines:
         comment = string.find(line, '#')
         if comment >= 0:
@@ -221,10 +225,17 @@ def Parse(data):
 def compile(infile):
     data = open(infile).read()
     meta, macros, song = Parse(data)
+    global cellsPerTab, cellWidth
+    cellsPerTab = int(meta.get("Cells", cellsPerTab))
+    cellWidth = tabWidth / cellsPerTab
+
+    global nTabs, tabSpacing
+    nTabs  = int(meta.get("Rows", nTabs))
+    tabSpacing = ((pageSize[1] - inch*2) / nTabs) - (nLines-1)*lineSpacing
     cookmacros(macros)
     song = Cooker(macros,song)()
     return items2data(song)
-    
+
 """
 How to cook the macros
 each macro is an arbitrary list of strings,
@@ -235,7 +246,7 @@ with the contents of the macro
 if no replacements occurred, done cooking that macro.
 """
 
-def cookmacros(macros):       
+def cookmacros(macros):
     keys = macros.keys()
     for k in keys:
         value = macros[k]
@@ -246,7 +257,7 @@ def cookmacros(macros):
 class Cooker:
     def __init__(self, macros, stuff):
         self.macros = macros
-        self.n = 0        
+        self.n = 0
         if not type(stuff) is ListType:
             stuff = [stuff]
         while 1:
@@ -258,10 +269,10 @@ class Cooker:
             if not self.n:
                 break
         self.value = stuff
-    
+
     def __call__(self):
         return self.value
-        
+
     def cook(self, item):
         g = self.macros.get(item)
         if g:
@@ -274,7 +285,7 @@ class Cooker:
 def pair(s):
     s,f = string.split(s,'.',1)
     return (int(s),int(f))
-    
+
 def onenote(s):
     if string.find(s, '.') > 0:
         return pair(s)
@@ -285,7 +296,7 @@ def items2data(song):
     inquote = []
     for s in song:
         c = s[0]
-        if c in '+-^{}': 
+        if c in '+-^{}':
             data.append(s)
         else:
             if string.find(s, '&') > 0:
@@ -295,6 +306,10 @@ def items2data(song):
                 s = onenote(s)
             data.append(s)
     return data
-    
-run('furelise.tab','t.pdf')
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print __doc__
+    else:
+        run(sys.argv[1], sys.argv[2])
 
