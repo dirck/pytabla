@@ -10,6 +10,7 @@
     let's go with:  either the charts are all placed or none are.
 """
 
+import copy
 import string
 import sys
 
@@ -29,18 +30,15 @@ class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
 
+Copy = copy.deepcopy  #JIC
 
 # change naming conventions for globals?
 
 pageSize=(8.5*inch,11*inch)
-margins = Bunch(left=1, right=1, top=1, bottom=1)
+margins = Bunch(left=0.75, right=0.75, top=1, bottom=1)
 
 # init function for cases where any of these globals are changed
 
-startX = margins.left * inch
-startY = pageSize[1] - margins.top * inch
-X = startX
-Y = startY
 nRows = 5
 nCols = 5
 
@@ -51,14 +49,29 @@ lineWidth = inch/144    # fine lines
 cellWidth = chartWidth / 8.
 cellHeight = cellWidth * 1.4
 
+startX = margins.left * inch + (chartWidth - cellWidth*5)/2
+startY = pageSize[1] - margins.top * inch  - (cellHeight)
+X = startX
+Y = startY
+
 dotRadius = cellWidth / 3.
-fontName="Times-Roman"
+fontName="Helvetica"
 fontSize=9
 
+white = (1,1,1)
+black = (0,0,0)
+gray = (.5,.5,.5)
+lightGray = (.75,.75,.75)
+darkGray = (.25,.25,.25)
+red = (1,0,0)
+green = (0,1,0)
+blue = (0,0,1)
+
 Charts = []
+Title = ""
 
 def main(argv):
-    global X,Y
+    global X,Y,Title
     if len(argv) != 2:
         print __doc__
         sys.exit(2);
@@ -67,7 +80,10 @@ def main(argv):
 
     X = 0
     Y = 0
-    execfile(argv[0])
+    execfile(argv[0], globals())
+    if Title:
+        print "title", Title
+        c.drawCentredString(pageSize[0]/2, pageSize[1]-(margins.top*inch*.65), Title)
     X = startX
     Y = startY
     for chart in Charts:
@@ -79,9 +95,6 @@ def main(argv):
         chart.draw(c, x, y)
         over()
 
-    #chart = Chart(title="D Major");
-    #chart.marks += [ (6,0,'x'), (5,0,'x'), (4,0,'o'), (3,2,'1'), (2,3,'3'), (1, 2, '2')]
-    #chart.draw(c, startX, startY)
     c.showPage()
     c.save()
 
@@ -120,13 +133,59 @@ class Chart:
         self.dots = []
         self.circles = []
         self.marks = []
+        self.colorDots = {}
         self.fx = X
         self.fy = Y
+
+    def copy(self):
+        n = Copy(self)
+        n.fx = X
+        n.fy = Y
+        Charts.append(n)
+        return n
+
+    def double1(self, dots):
+        r = []
+        for dot in dots:
+            r.append((dot[0], (dot[1]+12)))
+        return dots+r
+
+    def double(self):
+        self.visit(self.double1)
+
+    def roll1(self, dots, down):
+        r = []
+        for dot in dots:
+            r.append((dot[0], ( (dot[1]-down) % 24)))
+        return r
+
+    def chop1(self, dots):
+        r = []
+        for dot in dots:
+            if dot[1] <= self.frets:
+                r.append(dot)
+        return r
+
+    def chop(self):
+        self.visit(self.chop1)
+
+    def visit(self, f, *p):
+        self.dots = f(self.dots, *p)
+        self.circles = f(self.circles, *p)
+        colors = self.colorDots.keys()
+        for color in colors:
+            self.colorDots[color] = f(self.colorDots[color], *p)
+
+    def roll(self, up):
+        self.double()
+        self.visit(self.roll1, up)
+        self.chop()
 
     def frame(self):
         c = self.canvas
         x = self.fx
         y = self.fy
+        c.setStrokeColorRGB(*black)
         c.setLineWidth(lineWidth)
         for fret in range(self.frets+1):
             c.line(x, y-fret*cellHeight, x+cellWidth*5, y-fret*cellHeight)
@@ -144,13 +203,21 @@ class Chart:
         c = self.canvas
         x = self.fx + (6-string) * cellWidth
         y = self.fy - (fret) * cellHeight + cellHeight/2
-        c.circle(x, y, dotRadius, 0, 1)
+        dr = dotRadius
+        if fret < 1:
+            y -= dr
+            dr = dr/2
+        c.circle(x, y, dr, 0, 1)
 
     def draw_circle(self, string, fret):
         c = self.canvas
         x = self.fx + (6-string) * cellWidth
         y = self.fy - (fret) * cellHeight + cellHeight/2
-        c.circle(x, y, dotRadius, 1, 1)
+        dr = dotRadius
+        if fret < 1:
+            y -= dr
+            dr = dr/2
+        c.circle(x, y, dr, 1, 1)
 
     def draw_mark(self, string, fret, mark):
         c = self.canvas
@@ -165,22 +232,31 @@ class Chart:
             c.setFillColorRGB(0,0,0)
         c.drawCentredString(x, y, mark)
 
+    def draw_color(self, string, fret, color):
+        self.canvas.setFillColorRGB(*color)
+        self.draw_circle(string, fret)
+
     def draw(self, c, fx, fy):
         self.canvas = c
         self.fx = fx;
         self.fy = fy
         self.frame()
+        c.setFillColorRGB(*black)
         if self.title:
             c.drawCentredString(fx+cellWidth*2.5, fy+fontSize, self.title)
-        c.setFillColorRGB(0,0,0)
         for string,fret in self.dots:
             self.draw_dot(string, fret)
-        c.setFillColorRGB(1,1,1)
+        c.setFillColorRGB(*white)
         for string,fret in self.circles:
             self.draw_circle(string, fret)
-        c.setFillColorRGB(0,0,0)
+        c.setFillColorRGB(*black)
         for string, fret, mark in self.marks:
             self.draw_mark(string, fret, mark)
+        colors = self.colorDots.keys()
+        for color in colors:
+            marks = self.colorDots[color]
+            for string,fret in marks:
+                self.draw_color(string, fret, color)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
