@@ -42,19 +42,23 @@ margins = Bunch(left=0.75, right=0.75, top=1, bottom=1)
 nRows = 5
 nCols = 5
 
-chartWidth = (pageSize[0] - (margins.left+margins.right)*inch) / nCols
-chartHeight = (pageSize[1] - (margins.top+margins.bottom)*inch) / nRows
+def init():
+    global chartWidth, chartHeight, lineWidth, cellWidth, cellHeight, dotRadius
+    global startX, startY, X, Y
 
-lineWidth = inch/144    # fine lines
-cellWidth = chartWidth / 8.
-cellHeight = cellWidth * 1.4
+    chartWidth = (pageSize[0] - (margins.left+margins.right)*inch) / nCols
+    chartHeight = (pageSize[1] - (margins.top+margins.bottom)*inch) / nRows
 
-startX = margins.left * inch + (chartWidth - cellWidth*5)/2
-startY = pageSize[1] - margins.top * inch  - (cellHeight)
-X = startX
-Y = startY
+    lineWidth = inch/144    # fine lines
+    cellWidth = chartWidth / 8.
+    cellHeight = cellWidth * 1.4
+    dotRadius = cellWidth / 3.
 
-dotRadius = cellWidth / 3.
+    startX = margins.left * inch + (chartWidth - cellWidth*5)/2
+    startY = pageSize[1] - margins.top * inch  - (cellHeight)
+    X = startX
+    Y = startY
+
 fontName="Helvetica"
 fontSize=9
 
@@ -78,9 +82,11 @@ def main(argv):
     c = Canvas(argv[1], pagesize=pageSize, pageCompression=0)
     c.setFont(fontName, fontSize)
 
+    init()
     X = 0
     Y = 0
     execfile(argv[0], globals())
+    init()
     if Title:
         print "title", Title
         c.drawCentredString(pageSize[0]/2, pageSize[1]-(margins.top*inch*.65), Title)
