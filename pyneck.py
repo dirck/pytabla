@@ -143,6 +143,9 @@ def top():
     Y = startY
 
 class Chart:
+    """ marks and annotations:
+        (string, fret, color, text)
+    """
     # as offsets from C
     noteMap = {'C':0,
                'C#':1,'Db':1,
@@ -162,13 +165,11 @@ class Chart:
     def __init__(self, title="", frets=4):
         global X, Y
         Charts.append(self)
-        self.frets = frets
+        self.frets = frets  # nFrets
         self.title = title
-        self.dots = []
-        self.circles = []
-        self.marks = []
-        #self.annots = []
-        self.colorDots = {}
+        # split because notes move and annots don't
+        self.notes = []
+        self.annots = []
         self.fx = X
         self.fy = Y
 
@@ -186,34 +187,27 @@ class Chart:
         return dots+r
 
     def double(self):
-        self.visit(self.double1)
-
-    def roll1(self, dots, down):
         r = []
-        for dot in dots:
-            r.append((dot[0], ( (dot[1]-down) % 24)))
-        return r
+        for note in self.notes:
+            r.append((note[0], (note[1]+12), note[2], note[3]))
+        self.notes += r
 
-    def chop1(self, dots):
+    def roll1(self, down):
         r = []
-        for dot in dots:
-            if dot[1] <= self.frets:
-                r.append(dot)
-        return r
+        for note in self.notes:
+            r.append((note[0], (note[1]-down)%24, note[2], note[3]))
+        self.notes = r
 
     def chop(self):
-        self.visit(self.chop1)
+        r = []
+        for note in self.notes:
+            if note[1] <= self.frets:
+                r.append(note)
+        self.notes = r
 
-    def visit(self, f, *p):
-        self.dots = f(self.dots, *p)
-        self.circles = f(self.circles, *p)
-        colors = self.colorDots.keys()
-        for color in colors:
-            self.colorDots[color] = f(self.colorDots[color], *p)
-
-    def roll(self, up):
+    def roll_down(self, down):
         self.double()
-        self.visit(self.roll1, up)
+        self.roll1(down)
         self.chop()
 
     def frame(self):
@@ -228,48 +222,48 @@ class Chart:
             c.line(x+string*cellWidth, y, x+string*cellWidth, y-cellHeight*self.frets)
 
     def dot(self, string, fret):
-        self.dots.append( (string, fret) )
+        self.notes.append( (string, fret, black, None) )
+    def dots(self, a):
+        for string, fret in a:
+            self.dot(string, fret)
+
     def circle(self, string, fret):
-        self.circles.append( (string, fret) )
+        self.notes.append( (string, fret, white, None) )
+    def circles(self, a):
+        for string, fret in a:
+            self.circle(string, fret)
+
     def mark(self, string, fret, s):
-        self.marks.append( (string, fret, s) )
+        self.annots.append( (string, fret, black, s) )
+    def marks(self, a):
+        for string, fret, text in a:
+            self.mark(string, fret, text)
 
-    def draw_dot(self, string, fret):
+    def color_dot(self, color, string, fret):
+        self.notes.append( (string, fret, color, None) )
+    def color_dots(self, color, a):
+        for string, fret in a:
+            self.color_dot(color, string, fret)
+
+    def draw_note(self, string, fret, color, mark):
         c = self.canvas
-        x = self.fx + (6-string) * cellWidth
-        y = self.fy - (fret) * cellHeight + cellHeight/2
+        cx = self.fx + (6-string) * cellWidth
+        cy = self.fy - (fret) * cellHeight + cellHeight/2
+        ty = self.fy - (fret) * cellHeight + cellHeight / 2 - fontSize / 3
         dr = dotRadius
         if fret < 1:
-            y -= dr
+            ty = self.fy + fontSize * .2
+            cy -= dr
             dr = dr/2
-        c.circle(x, y, dr, 0, 1)
-
-    def draw_circle(self, string, fret):
-        c = self.canvas
-        x = self.fx + (6-string) * cellWidth
-        y = self.fy - (fret) * cellHeight + cellHeight/2
-        dr = dotRadius
-        if fret < 1:
-            y -= dr
-            dr = dr/2
-        c.circle(x, y, dr, 1, 1)
-
-    def draw_mark(self, string, fret, mark):
-        c = self.canvas
-        x = self.fx + (6-string) * cellWidth
-        if fret == 0:
-            y = self.fy + fontSize * .2
-        else:
-            y = self.fy - (fret) * cellHeight + cellHeight / 2 - fontSize / 3
-            c.setFillColorRGB(1,1,1)
-            if string > 0 and string < 7 and mark[0] != '(':    #OPT
-                self.draw_circle(string, fret)
-            c.setFillColorRGB(0,0,0)
-        c.drawCentredString(x, y, mark)
-
-    def draw_color(self, string, fret, color):
-        self.canvas.setFillColorRGB(*color)
-        self.draw_circle(string, fret)
+        if not mark:
+            c.setFillColorRGB(*color)
+            c.circle(cx, cy, dr, 1, 1)
+            return
+        if fret > 0 and string < 7 and mark[0] != '(':
+            c.setFillColorRGB(*white)
+            c.circle(cx, cy, dr, 1, 1)
+        c.setFillColorRGB(*color)
+        c.drawCentredString(cx, ty, mark)
 
     def draw(self, c, fx, fy):
         self.canvas = c
@@ -279,41 +273,37 @@ class Chart:
         c.setFillColorRGB(*black)
         if self.title:
             c.drawCentredString(fx+cellWidth*2.5, fy+fontSize, self.title)
-        for string,fret in self.dots:
-            self.draw_dot(string, fret)
-        c.setFillColorRGB(*white)
-        for string,fret in self.circles:
-            self.draw_circle(string, fret)
-        c.setFillColorRGB(*black)
-        for string, fret, mark in self.marks:
-            self.draw_mark(string, fret, mark)
-        colors = self.colorDots.keys()
-        for color in colors:
-            marks = self.colorDots[color]
-            for string,fret in marks:
-                self.draw_color(string, fret, color)
+        for string,fret,color,mark in self.notes:
+            self.draw_note(string, fret, color, mark)
+        for string,fret,color,mark in self.annots:
+            self.draw_note(string, fret, color, mark)
 
-    def color_note(self, note, color):
+    def color_note(self, color, note):
         offset = self.noteMap[note]
-        # what's the idiom for this?
-        dots = self.colorDots.get(color, [])
-        self.colorDots[color] = dots
         for string in range(1,7):
             openNote = self.standardTuning[string]
             # brute force
             for fret in range(0, self.frets+1):
                 if (openNote+fret)%12 == offset:
-                    dots.append((string,fret))
+                    self.color_dot(color, string, fret)
 
-    def mark_note(self, note, mark):
+    def color_notes(self, color, notes):
+        for note in notes:
+            self.color_note(color, note)
+
+    def mark_note(self, mark, note):
         offset = self.noteMap[note]
-        dots = self.marks
         for string in range(1,7):
             openNote = self.standardTuning[string]
             # brute force
             for fret in range(0, self.frets+1):
                 if (openNote+fret)%12 == offset:
-                    dots.append((string,fret,mark))
+                    self.mark(string, fret, mark)
+
+    def mark_notes(self, mark, notes):
+        for note in notes:
+            self.mark_note(mark, note)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
