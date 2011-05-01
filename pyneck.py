@@ -64,12 +64,24 @@ fontSize=9
 
 white = (1,1,1)
 black = (0,0,0)
+
+# calibrate a little better
 gray = (.5,.5,.5)
 lightGray = (.75,.75,.75)
 darkGray = (.25,.25,.25)
+
+# for printing
 red = (1,0,0)
 green = (0,1,0)
 blue = (0,0,1)
+
+darkRed = (0.5,0,0)
+darkGreen = (0.5,1,0)
+darkBlue = (0.5,0,1)
+
+cyan = (0,1,1)
+yellow = (1,0,1)
+magenta = (0,0,1)
 
 Charts = []
 Title = ""
@@ -131,6 +143,22 @@ def top():
     Y = startY
 
 class Chart:
+    # as offsets from C
+    noteMap = {'C':0,
+               'C#':1,'Db':1,
+               'D':2,
+               'D#':3, 'Eb':3,
+               'E':4,
+               'F':5,
+               'F#':6,'Gb':6,
+               'G':7,
+               'G#':8,'Ab':8,
+               'A':9,
+               'A#':10, 'Bb':10,
+               'B':11}
+
+    standardTuning = {6:4,5:9,4:2,3:7,2:11,1:4}
+
     def __init__(self, title="", frets=4):
         global X, Y
         Charts.append(self)
@@ -139,6 +167,7 @@ class Chart:
         self.dots = []
         self.circles = []
         self.marks = []
+        #self.annots = []
         self.colorDots = {}
         self.fx = X
         self.fy = Y
@@ -263,6 +292,28 @@ class Chart:
             marks = self.colorDots[color]
             for string,fret in marks:
                 self.draw_color(string, fret, color)
+
+    def color_note(self, note, color):
+        offset = self.noteMap[note]
+        # what's the idiom for this?
+        dots = self.colorDots.get(color, [])
+        self.colorDots[color] = dots
+        for string in range(1,7):
+            openNote = self.standardTuning[string]
+            # brute force
+            for fret in range(0, self.frets+1):
+                if (openNote+fret)%12 == offset:
+                    dots.append((string,fret))
+
+    def mark_note(self, note, mark):
+        offset = self.noteMap[note]
+        dots = self.marks
+        for string in range(1,7):
+            openNote = self.standardTuning[string]
+            # brute force
+            for fret in range(0, self.frets+1):
+                if (openNote+fret)%12 == offset:
+                    dots.append((string,fret,mark))
 
 if __name__ == '__main__':
     main(sys.argv[1:])
