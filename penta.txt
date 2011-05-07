@@ -1,0 +1,57 @@
+Title = "pentatonics"
+nRows = 2
+nCols = 5
+
+###############################################################
+
+c = Chart("C", frets=15)
+c.fret_marks()
+c.color_note(black, 'C')
+c.color_note(white, 'D')
+c.color_note(blue, 'Eb')
+c.color_note(gray, 'E')
+c.color_note(darkGray, 'G')
+c.color_note(lightGray, 'A')
+
+g = c.copy()
+g.title = "G"
+g.roll_down(5)
+
+d = g.copy()
+d.title = "D"
+d.roll_down(5)
+
+a = d.copy()
+a.title = "A"
+a.roll_down(5)
+
+e = a.copy()
+e.title = "E"
+e.roll_down(5)
+
+c = Chart("Cm/Eb", frets=15)
+c.fret_marks()
+c.color_note(black, 'C')
+c.color_note(white, 'Eb')
+c.color_note(gray, 'F')
+c.color_note(blue, 'F#')
+c.color_note(darkGray, 'G')
+c.color_note(lightGray, 'Bb')
+
+g = c.copy()
+g.title = "Gm/Bb"
+g.roll_down(5)
+
+d = g.copy()
+d.title = "Dm/F"
+d.roll_down(5)
+
+a = d.copy()
+a.title = "Am/C"
+a.roll_down(5)
+
+e = a.copy()
+e.title = "Em/Db"
+e.roll_down(5)
+
+

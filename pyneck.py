@@ -66,9 +66,13 @@ white = (1,1,1)
 black = (0,0,0)
 
 # calibrate a little better
-gray = (.5,.5,.5)
-lightGray = (.75,.75,.75)
-darkGray = (.25,.25,.25)
+#gray = (.5,.5,.5)
+#lightGray = (.75,.75,.75)
+#darkGray = (.25,.25,.25)
+
+gray = (.70,.70,.70)
+lightGray = (.85,.85,.85)
+darkGray = (.55,.55,.55)
 
 # for printing
 red = (1,0,0)
@@ -172,6 +176,19 @@ class Chart:
         self.annots = []
         self.fx = X
         self.fy = Y
+        self.tuning = Chart.standardTuning
+
+    def alternate_tuning(self, strings):
+        v = strings.split(' ')
+        v = map(lambda x: x.strip(), v)
+        v = filter(None, v)
+        if len(v) != 6:
+            raise ValueError
+        v = [self.noteMap[s] for s in v]
+        t = {}
+        for i in range(6):
+            t[6-i] = v[i]
+        self.tuning = t
 
     def copy(self):
         n = Copy(self)
@@ -199,11 +216,7 @@ class Chart:
         self.notes = r
 
     def chop(self):
-        r = []
-        for note in self.notes:
-            if note[1] <= self.frets:
-                r.append(note)
-        self.notes = r
+        self.notes = filter(lambda note: note[1] <= self.frets, self.notes)
 
     def roll_down(self, down):
         self.double()
@@ -281,7 +294,7 @@ class Chart:
     def color_note(self, color, note):
         offset = self.noteMap[note]
         for string in range(1,7):
-            openNote = self.standardTuning[string]
+            openNote = self.tuning[string]
             # brute force
             for fret in range(0, self.frets+1):
                 if (openNote+fret)%12 == offset:
@@ -294,7 +307,7 @@ class Chart:
     def mark_note(self, mark, note):
         offset = self.noteMap[note]
         for string in range(1,7):
-            openNote = self.standardTuning[string]
+            openNote = self.tuning[string]
             # brute force
             for fret in range(0, self.frets+1):
                 if (openNote+fret)%12 == offset:
@@ -303,6 +316,27 @@ class Chart:
     def mark_notes(self, mark, notes):
         for note in notes:
             self.mark_note(mark, note)
+
+    def chop_marks(self):
+        self.annots = filter(lambda note: note[1] <= self.frets, self.annots)
+
+    def fret_numbers(self):
+        self.marks([ (7,3,'3'),
+                     (7,5,'5'),
+                     (7,7,'7'),
+                     (7,9,'9'),
+                     (7,12,'12'),
+                     (7,15,'15') ])
+        self.chop_marks();
+
+    def fret_marks(self):
+        self.marks([ (7,3,'*'),
+                     (7,5,'*'),
+                     (7,7,'*'),
+                     (7,9,'*'),
+                     (7,12,'::'),
+                     (7,15,'*') ])
+        self.chop_marks();
 
 
 if __name__ == '__main__':

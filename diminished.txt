@@ -1,0 +1,30 @@
+Title = "C"
+nRows = 1
+nCols = 3
+
+###############################################################
+
+c = Chart("Dim1", frets=15)
+c.fret_numbers()
+c.color_note(black, 'C')
+c.color_note(lightGray, 'Eb')
+c.color_note(gray, 'Gb')
+c.color_note(white, 'A')
+
+c = Chart("Dim2", frets=15)
+c.fret_marks()
+
+c.color_note(black, 'C#')
+c.color_note(lightGray, 'E')
+c.color_note(gray, 'G')
+c.color_note(white, 'A#')
+
+c = Chart("Dim3", frets=15)
+c.fret_marks()
+
+c.color_note(black, 'D')
+c.color_note(lightGray, 'F')
+c.color_note(gray, 'G#')
+c.color_note(white, 'B')
+
+

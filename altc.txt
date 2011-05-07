@@ -1,0 +1,34 @@
+Title = "C alternate"
+nRows = 1
+nCols = 3
+
+c = Chart("C Fripp", frets=15)
+c.alternate_tuning("C G D A E G")   #FRIPP
+
+c.marks([ (7,3,'3'),
+          (7,5,'5'),
+          (7,7,'7'),
+          (7,9,'9'),
+          (7,12,'12'),
+          (7,15,'15') ])
+
+c.color_note(black, 'C')
+c.color_note(lightGray, 'E')
+c.color_note(gray, 'G')
+#c.color_note(white, 'Bb')
+
+c = Chart("C DADGAD", frets=15)
+c.alternate_tuning("D A D G A D")
+
+c.marks([ (7,3,'3'),
+          (7,5,'5'),
+          (7,7,'7'),
+          (7,9,'9'),
+          (7,12,'12'),
+          (7,15,'15') ])
+
+c.color_note(black, 'C')
+c.color_note(lightGray, 'E')
+c.color_note(gray, 'G')
+#c.color_note(white, 'Bb')
+
